@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 import numpy as np
 
 st.set_page_config(page_title="2025 BMI Interactive Avatar", layout="wide")
-st.title("⚖️ BMI Visualizer with Dynamic Avatar")
+st.title("DaCode-r BMI Avatar!")
 
 # --- SIDEBAR: Inputs ---
 st.sidebar.header("Input Measurements")
