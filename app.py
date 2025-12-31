@@ -42,9 +42,14 @@ with plot_col:
     fig_map = go.Figure()
     fig_map.add_trace(go.Contour(
         z=BMI_z, x=weights_grid, y=heights_grid,
-        colorscale=[[0, 'blue'], [0.185, 'blue'], [0.185, 'green'], [0.25, 'green'], 
-                    [0.25, 'orange'], [0.3, 'orange'], [0.3, 'red'], [1, 'red']],
-        showscale=False, contours=dict(showlines=False), opacity=0.3, hoverinfo='skip'
+        # Updated colorscale to ensure the green area (Normal) is clearly visible
+        colorscale=[
+            [0, 'blue'], [18.5/100, 'blue'],
+            [18.5/100, 'green'], [25/100, 'green'], 
+            [25/100, 'orange'], [30/100, 'orange'],
+            [30/100, 'red'], [1, 'red']
+        ],
+        showscale=False, contours=dict(showlines=False), opacity=0.4, hoverinfo='skip'
     ))
     
     # Legend Traces
@@ -52,40 +57,40 @@ with plot_col:
         fig_map.add_trace(go.Scatter(x=[None], y=[None], mode='markers', 
                                     marker=dict(size=12, color=cat['color'], symbol='square'), name=cat['name']))
 
-    fig_map.add_trace(go.Scatter(x=[weight], y=[total_inches], mode="markers+text",
-                                text=[f"YOU"], textposition="top center", name="Current",
-                                marker=dict(color='black', size=15, symbol='diamond')))
+    # Updated Marker: color set to 'white' with a black border
+    fig_map.add_trace(go.Scatter(
+        x=[weight], y=[total_inches], mode="markers+text",
+        text=[f"YOU ({bmi})"], textposition="top center", name="Current",
+        marker=dict(color='white', size=15, symbol='diamond', line=dict(color='black', width=2))
+    ))
 
     fig_map.update_layout(title="BMI Map", xaxis_title="Weight (kg)", yaxis_title="Height (in)", height=500)
     st.plotly_chart(fig_map, use_container_width=True)
 
 # --- COLUMN 2: DYNAMIC HUMAN AVATAR ---
 with avatar_col:
-    # Calculate Scaling Factors for Avatar
-    # Base height at 68 inches, Base width at 70 kg
     h_scale = total_inches / 68
-    w_scale = (weight / 70) ** 0.5 # Square root scaling prevents looking too distorted
+    w_scale = (weight / 70) ** 0.5 
 
     fig_avatar = go.Figure()
-
-    # Define an SVG-like human shape (Head, Torso, Limbs) using coordinates
-    # We multiply Y by h_scale and X by w_scale
     avatar_color = current_cat["color"]
     
-    # Simple Stylized Human Shape
+    # Head
     fig_avatar.add_trace(go.Scatter(
         x=[0], y=[1.8 * h_scale], mode="markers", 
         marker=dict(size=40 * w_scale, color=avatar_color), showlegend=False
-    )) # Head
+    )) 
     
+    # Torso
     fig_avatar.add_shape(type="rect", x0=-0.4 * w_scale, y0=0.8 * h_scale, x1=0.4 * w_scale, y1=1.6 * h_scale,
-                        fillcolor=avatar_color, line_color=avatar_color) # Torso
+                        fillcolor=avatar_color, line_color=avatar_color) 
     
+    # Legs
     fig_avatar.add_shape(type="line", x0=-0.2 * w_scale, y0=0, x1=-0.2 * w_scale, y1=0.8 * h_scale,
-                        line=dict(color=avatar_color, width=15 * w_scale)) # Left Leg
+                        line=dict(color=avatar_color, width=15 * w_scale)) 
     
     fig_avatar.add_shape(type="line", x0=0.2 * w_scale, y0=0, x1=0.2 * w_scale, y1=0.8 * h_scale,
-                        line=dict(color=avatar_color, width=15 * w_scale)) # Right Leg
+                        line=dict(color=avatar_color, width=15 * w_scale)) 
 
     fig_avatar.update_layout(
         title=f"Body Preview ({current_cat['name']})",
