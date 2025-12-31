@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 import numpy as np
 
 st.set_page_config(page_title="2025 BMI Tracker", layout="wide")
-st.title("⚖️ DaCode-r's BMI Visualizer")
+st.title("DaCode-r BMI Visualizer")
 
 # --- SIDEBAR: Native Horizontal Sliders ---
 st.sidebar.header("Input Measurements")
