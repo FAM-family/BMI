@@ -2,8 +2,8 @@ import streamlit as st
 import plotly.graph_objects as go
 import numpy as np
 
-st.set_page_config(page_title="2025 BMI Interactive Avatar", layout="wide")
-st.title("⚖️ BMI Visualizer with Dynamic Avatar")
+st.set_page_config(page_title="2025 BMI Tracker", layout="wide")
+st.title("⚖️ BMI Visualizer with Fixed Color Zones")
 
 # --- SIDEBAR: Inputs ---
 st.sidebar.header("Input Measurements")
@@ -15,7 +15,6 @@ height_m = total_inches * 0.0254
 bmi = round(weight / (height_m**2), 2)
 feet, inches = total_inches // 12, total_inches % 12
 
-# Standard Categories
 categories = [
     {"name": "Underweight", "color": "blue", "range": (0, 18.5)},
     {"name": "Normal", "color": "green", "range": (18.5, 25)},
@@ -32,71 +31,60 @@ res3.metric("BMI", f"{bmi}", delta=current_cat["name"], delta_color="normal")
 
 plot_col, avatar_col = st.columns([2, 1])
 
-# --- COLUMN 1: BMI CATEGORY MAP ---
 with plot_col:
-    weights_grid = np.linspace(30, 150, 100)
-    heights_grid = np.linspace(36, 96, 100)
-    W, H = np.meshgrid(weights_grid, heights_grid)
+    w_grid = np.linspace(30, 150, 100)
+    h_grid = np.linspace(36, 96, 100)
+    W, H = np.meshgrid(w_grid, h_grid)
     BMI_z = W / ((H * 0.0254)**2)
+
+    # DISCONTINUOUS COLORSCALE: Defines blocks of color instead of a gradient
+    # Normalize BMI values 0-50 to 0.0-1.0
+    d_colors = [
+        [0, 'blue'], [18.5/50, 'blue'],         # Underweight block
+        [18.5/50, 'green'], [25/50, 'green'],   # Normal block (Green Area)
+        [25/50, 'orange'], [30/50, 'orange'],   # Overweight block
+        [30/50, 'red'], [1, 'red']              # Obese block
+    ]
 
     fig_map = go.Figure()
     fig_map.add_trace(go.Contour(
-        z=BMI_z, x=weights_grid, y=heights_grid,
-        # Updated colorscale to ensure the green area (Normal) is clearly visible
-        colorscale=[
-            [0, 'blue'], [18.5/100, 'blue'],
-            [18.5/100, 'green'], [25/100, 'green'], 
-            [25/100, 'orange'], [30/100, 'orange'],
-            [30/100, 'red'], [1, 'red']
-        ],
-        showscale=False, contours=dict(showlines=False), opacity=0.4, hoverinfo='skip'
+        z=BMI_z, x=w_grid, y=h_grid,
+        zmin=0, zmax=50,
+        colorscale=d_colors,
+        showscale=False, 
+        contours=dict(showlines=False, coloring='heatmap'),
+        opacity=0.4, hoverinfo='skip'
     ))
     
-    # Legend Traces
     for cat in categories:
         fig_map.add_trace(go.Scatter(x=[None], y=[None], mode='markers', 
                                     marker=dict(size=12, color=cat['color'], symbol='square'), name=cat['name']))
 
-    # Updated Marker: color set to 'white' with a black border
+    # WHITE MARKER with black outline
     fig_map.add_trace(go.Scatter(
         x=[weight], y=[total_inches], mode="markers+text",
-        text=[f"YOU ({bmi})"], textposition="top center", name="Current",
+        text=[f"YOU ({bmi})"], textposition="top center", name="Your Position",
         marker=dict(color='white', size=15, symbol='diamond', line=dict(color='black', width=2))
     ))
 
-    fig_map.update_layout(title="BMI Map", xaxis_title="Weight (kg)", yaxis_title="Height (in)", height=500)
-    st.plotly_chart(fig_map, use_container_width=True)
+    fig_map.update_layout(title="BMI Map (Normal Zone in Green)", xaxis_title="Weight (kg)", yaxis_title="Height (in)", height=500)
+    # Using theme=None ensures Streamlit doesn't overwrite your colors
+    st.plotly_chart(fig_map, use_container_width=True, theme=None)
 
-# --- COLUMN 2: DYNAMIC HUMAN AVATAR ---
 with avatar_col:
-    h_scale = total_inches / 68
-    w_scale = (weight / 70) ** 0.5 
-
+    h_scale, w_scale = total_inches / 68, (weight / 70) ** 0.5
     fig_avatar = go.Figure()
     avatar_color = current_cat["color"]
     
-    # Head
-    fig_avatar.add_trace(go.Scatter(
-        x=[0], y=[1.8 * h_scale], mode="markers", 
-        marker=dict(size=40 * w_scale, color=avatar_color), showlegend=False
-    )) 
-    
-    # Torso
+    fig_avatar.add_trace(go.Scatter(x=[0], y=[1.8 * h_scale], mode="markers", 
+                                    marker=dict(size=40 * w_scale, color=avatar_color), showlegend=False)) 
     fig_avatar.add_shape(type="rect", x0=-0.4 * w_scale, y0=0.8 * h_scale, x1=0.4 * w_scale, y1=1.6 * h_scale,
                         fillcolor=avatar_color, line_color=avatar_color) 
-    
-    # Legs
     fig_avatar.add_shape(type="line", x0=-0.2 * w_scale, y0=0, x1=-0.2 * w_scale, y1=0.8 * h_scale,
                         line=dict(color=avatar_color, width=15 * w_scale)) 
-    
     fig_avatar.add_shape(type="line", x0=0.2 * w_scale, y0=0, x1=0.2 * w_scale, y1=0.8 * h_scale,
                         line=dict(color=avatar_color, width=15 * w_scale)) 
 
-    fig_avatar.update_layout(
-        title=f"Body Preview ({current_cat['name']})",
-        xaxis=dict(range=[-2, 2], showgrid=False, zeroline=False, showticklabels=False),
-        yaxis=dict(range=[0, 2.5], showgrid=False, zeroline=False, showticklabels=False),
-        height=500,
-        plot_bgcolor='rgba(0,0,0,0)'
-    )
-    st.plotly_chart(fig_avatar, use_container_width=True)
+    fig_avatar.update_layout(title="Body Preview", xaxis=dict(range=[-2, 2], visible=False), 
+                            yaxis=dict(range=[0, 2.5], visible=False), height=500, plot_bgcolor='rgba(0,0,0,0)')
+    st.plotly_chart(fig_avatar, use_container_width=True, theme=None)
